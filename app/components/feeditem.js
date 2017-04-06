@@ -2,7 +2,7 @@ import React from 'react';
 import StatusUpdate from './statusupdate';
 import CommentThread from './commentthread';
 import Comment from './comment';
-import {postComment, unlikeFeedItem, likeFeedItem} from '../server'
+import {postComment, unlikeFeedItem, likeFeedItem, likeComment, unlikeComment} from '../server'
 
 export default class FeedItem extends React.Component {
   constructor(props) {
@@ -47,6 +47,35 @@ export default class FeedItem extends React.Component {
      }
    }
  }
+
+ /**
+ * Triggered when the user clicks on the 'like' or 'unlike' button.
+ */
+handleCommentClick(clickEvent, commentId, hasLiked) {
+  // Stop the event from propagating up the DOM tree, since we handle it here.
+  // Also prevents the link click from causing the page to scroll to the top.
+  clickEvent.preventDefault();
+  // 0 represents the 'main mouse button' -- typically a left click
+  // https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/button
+  if (clickEvent.button === 0) {
+    // Callback function for both the like and unlike cases.
+    var callbackFunction = (updatedComments) => {
+      // setState will overwrite the 'likeCounter' field on the current
+      // state, and will keep the other fields in-tact.
+      // This is called a shallow merge:
+      // https://facebook.github.io/react/docs/component-api.html#setstate
+      this.setState({comments: updatedComments});
+    };
+
+    if (hasLiked) {
+      // User clicked 'unlike' button.
+      unlikeComment(this.state._id, commentId, 4, callbackFunction);
+    } else {
+      // User clicked 'like' button.
+      likeComment(this.state._id, commentId, 4, callbackFunction);
+    }
+  }
+}
 
  /**
   * Returns 'true' if the user liked the item.
@@ -130,7 +159,7 @@ export default class FeedItem extends React.Component {
                 data.comments.map((comment, i) => {
                   // i is comment's index in comments array
                   return (
-                    <Comment key={i} author={comment.author} postDate={comment.postDate}>{comment.contents}</Comment>
+                    <Comment handleClick={(e, bool) => this.handleCommentClick(e, i, bool)} likeCount={comment.likeCounter} key={i} author={comment.author} postDate={comment.postDate}>{comment.contents}</Comment>
                   );
                 })
               }
